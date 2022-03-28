@@ -163,7 +163,7 @@ class SPIDAuth extends Controller
 
         session(['spid_idp' => $idp]);
         session(['spid_idpEntityName' => $idpEntityName]);
-        session(['spid_sessionIndex' => $this->getSAML($idp)->getSessionIndex()]);
+        session(['spid_sessionId' => $this->getSAML($idp)->getLastMessageId()]);
         session(['spid_nameId' => $this->getSAML($idp)->getNameId()]);
         session(['spid_user' => $SPIDUser]);
 
@@ -189,7 +189,7 @@ class SPIDAuth extends Controller
     public function logout(): RedirectResponse
     {
         if ($this->isAuthenticated()) {
-            $sessionIndex = session()->pull('spid_sessionIndex');
+            $sessionId = session()->pull('spid_sessionId');
             $nameId = session()->pull('spid_nameId');
             $returnTo = url(config('spid-auth.after_logout_url'));
             $idp = session()->get('spid_idp');
@@ -209,7 +209,7 @@ class SPIDAuth extends Controller
             }
 
             try {
-                return $this->getSAML($idp)->logout($returnTo, [], $nameId, $sessionIndex, false, SAMLConstants::NAMEID_TRANSIENT, $idpEntityId);
+                return $this->getSAML($idp)->logout($returnTo, [], $nameId, $sessionId, false, SAMLConstants::NAMEID_TRANSIENT, $idpEntityId);
             } catch (SAMLError $e) {
                 throw new SPIDLogoutException($e->getMessage(), SPIDLogoutException::SAML_LOGOUT_ERROR, $e);
             }
@@ -248,7 +248,7 @@ class SPIDAuth extends Controller
      */
     public function isAuthenticated(): bool
     {
-        return session()->has('spid_sessionIndex');
+        return session()->has('spid_sessionId');
     }
 
     /**
