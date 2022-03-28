@@ -24,7 +24,7 @@ class SPIDAuthTest extends SPIDAuthBaseTestCase
     public function testLoginIfAuthenticated()
     {
         $response = $this->withSession([
-            'spid_sessionIndex' => 'sessionIndex',
+            'spid_sessionId' => 'sessionId',
         ])->get($this->loginURL);
 
         $response->assertRedirect($this->afterLoginURL);
@@ -33,7 +33,7 @@ class SPIDAuthTest extends SPIDAuthBaseTestCase
     public function testLoginIfAuthenticatedWithIntendedURL()
     {
         $response = $this->withSession([
-            'spid_sessionIndex' => 'sessionIndex',
+            'spid_sessionId' => 'sessionId',
             'url.intended' => 'intendedURL',
         ])->get($this->loginURL);
 
@@ -43,7 +43,7 @@ class SPIDAuthTest extends SPIDAuthBaseTestCase
     public function testDoLoginIfAuthenticated()
     {
         $response = $this->withSession([
-            'spid_sessionIndex' => 'sessionIndex',
+            'spid_sessionId' => 'sessionId',
         ])->post($this->doLoginURL);
 
         $response->assertRedirect($this->afterLoginURL);
@@ -52,7 +52,7 @@ class SPIDAuthTest extends SPIDAuthBaseTestCase
     public function testDoLoginIfAuthenticatedWithIntendedURL()
     {
         $response = $this->withSession([
-            'spid_sessionIndex' => 'sessionIndex',
+            'spid_sessionId' => 'sessionId',
             'url.intended' => 'intendedURL',
         ])->post($this->doLoginURL);
 
@@ -125,7 +125,7 @@ class SPIDAuthTest extends SPIDAuthBaseTestCase
         ])->post($this->acsURL);
 
         $response->assertSessionHas('spid_idpEntityName', 'Test IdP');
-        $response->assertSessionHas('spid_sessionIndex', 'sessionIndex');
+        $response->assertSessionHas('spid_sessionId', 'sessionId');
         $response->assertSessionHas('spid_nameId', 'nameId');
         $response->assertSessionHas('spid_user');
         $response->assertRedirect($this->afterLoginURL);
@@ -163,7 +163,7 @@ class SPIDAuthTest extends SPIDAuthBaseTestCase
 
         $this->assertFalse(cache()->has('RANDOM_STRING'));
         $response->assertSessionHas('spid_idpEntityName', 'Test IdP');
-        $response->assertSessionHas('spid_sessionIndex', 'sessionIndex');
+        $response->assertSessionHas('spid_sessionId', 'sessionId');
         $response->assertSessionHas('spid_nameId', 'nameId');
         $response->assertSessionHas('spid_user');
         $response->assertRedirect('intendedURL');
@@ -182,6 +182,21 @@ class SPIDAuthTest extends SPIDAuthBaseTestCase
         ])->post($this->acsURL);
 
         $response->assertStatus(500);
+    }
+
+    public function testAcsWithHigherSPIDLevel()
+    {
+        $this->setSPIDAuthMock([
+            'responseXmlFile' => 'valid_higher_spidlevel.xml',
+        ]);
+
+        $response = $this->withCookies([
+            'spid_lastRequestId' => 'UNIQUE_ID',
+            'spid_lastRequestIssueInstant' => SAMLUtils::parseTime2SAML(time()),
+            'spid_idp' => 'test',
+        ])->post($this->acsURL);
+
+        $response->assertRedirect();
     }
 
     public function testAcsWithMalformedSAMLResponse()
@@ -264,7 +279,7 @@ class SPIDAuthTest extends SPIDAuthBaseTestCase
 
         $response = $this->get($this->logoutURL);
 
-        $response->assertSessionMissing('spid_sessionIndex');
+        $response->assertSessionMissing('spid_sessionId');
         $response->assertSessionMissing('spid_nameId');
         $response->assertRedirect($this->logoutURL);
     }
@@ -345,7 +360,7 @@ class SPIDAuthTest extends SPIDAuthBaseTestCase
 
         $response = $this->get($this->logoutURL);
 
-        $response->assertSessionMissing('spid_sessionIndex');
+        $response->assertSessionMissing('spid_sessionId');
         $response->assertSessionMissing('spid_nameId');
         $response->assertRedirect($this->afterLogoutURL);
         Event::assertDispatched(LogoutEvent::class, function ($e) {
